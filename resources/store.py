@@ -34,7 +34,7 @@ class StoreList(MethodView):
     def get(self):
         return StoreModel.query.all()
 
-    @jwt_required(fresh=False)
+    # @jwt_required(fresh=False)
     @blp.arguments(StoreSchema)
     @blp.response(201, StoreSchema)
     def post(self, store_data):

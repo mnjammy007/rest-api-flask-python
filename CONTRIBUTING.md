@@ -16,3 +16,9 @@ docker run -dp 5000:5000 -w /app -v "$(pwd):/app" falsk-smorest-api
 docker run -dp 5000:5000 -w /app -v "$(pwd):/app" falsk-smorest-api sh -c "flask run"
 
 ```
+
+## How to run migrations
+
+```
+falsk db upgrade
+```

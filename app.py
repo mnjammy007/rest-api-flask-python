@@ -5,6 +5,7 @@ from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 from db import db
 from blocklist import BLOCKLIST
@@ -26,15 +27,17 @@ def create_app(db_url=None):
     app.config["OPENAPI_VERSION"] = "3.0.3"
     app.config["OPENAPI_URL_PREFIX"] = "/"
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
-    app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv(
-        "DATABASE_URL", "sqlite:///data.db")
+    app.config["OPENAPI_SWAGGER_UI_URL"] = (
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
+    )
+    database_url = f'{os.getenv('DB_TYPE_PREFIX')}://{os.getenv('DB_USERNAME')}:{quote_plus(os.getenv('DB_PASSWORD'))}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}'
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or database_url or 'sqlite:///data.db'
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
     migrate = Migrate(app, db)
     api = Api(app)
 
-    app.config["JWT_SECRET_KEY"] = "64156179496061885902048498208078860402App@Success12"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     jwt = JWTManager(app)
 
     @jwt.token_in_blocklist_loader
@@ -43,11 +46,24 @@ def create_app(db_url=None):
 
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):
-        return (jsonify({"description": "The token has been revoked", "error": "token_revoked"}), 401)
+        return (
+            jsonify(
+                {"description": "The token has been revoked", "error": "token_revoked"}
+            ),
+            401,
+        )
 
     @jwt.needs_fresh_token_loader
     def token_not_fresh_callback(jwt_header, jwt_payload):
-        return (jsonify({"description": "The token is not fresh.", "error": "fresh token required."}), 401)
+        return (
+            jsonify(
+                {
+                    "description": "The token is not fresh.",
+                    "error": "fresh token required.",
+                }
+            ),
+            401,
+        )
 
     @jwt.additional_claims_loader
     def add_clainm_to_jwt(identity):
@@ -59,8 +75,7 @@ def create_app(db_url=None):
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
         return (
-            jsonify({"message": "The token has expired.",
-                    "error": "token_expired"}),
+            jsonify({"message": "The token has expired.", "error": "token_expired"}),
             401,
         )
 

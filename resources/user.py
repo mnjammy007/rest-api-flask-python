@@ -4,7 +4,13 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError
 from passlib.hash import pbkdf2_sha256
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt, create_refresh_token, get_jwt_identity
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt,
+    create_refresh_token,
+    get_jwt_identity,
+)
 from sqlalchemy import or_
 
 from db import db
@@ -19,7 +25,16 @@ blp = Blueprint("Users", "users", description="Operations on Users")
 def send_simple_message(to, subject, body):
     domain = os.getenv("MAILGUN_DOMAIN_NAME")
     api_key = os.getenv("MAILGUN_API_KEY")
-    return requests.post(f"https://api.mailgun.net/v3/{domain}/messages", auth=("api", f"{api_key}"), data={"from": f"Mohd Nasir Jamal <mailgun@{domain}>", "to": [to], "subject": subject, "text": body})
+    return requests.post(
+        f"https://api.mailgun.net/v3/{domain}/messages",
+        auth=("api", f"{api_key}"),
+        data={
+            "from": f"Mohd Nasir Jamal <mailgun@{domain}>",
+            "to": [to],
+            "subject": subject,
+            "text": body,
+        },
+    )
 
 
 @blp.route("/register")
@@ -27,10 +42,12 @@ class UserRegister(MethodView):
     @blp.arguments(UserRegisterSchema)
     @blp.response(201, UserRegisterSchema)
     def post(self, user_data):
-        if UserModel.query.filter(or_(
-            UserModel.username == user_data["username"],
-            UserModel.email == user_data["email"],
-            )).first():
+        if UserModel.query.filter(
+            or_(
+                UserModel.username == user_data["username"],
+                UserModel.email == user_data["email"],
+            )
+        ).first():
             abort(409, message="A user with that username or email already exists.")
 
         user = UserModel(
@@ -40,8 +57,10 @@ class UserRegister(MethodView):
         )
         db.session.add(user)
         db.session.commit()
-        
-        send_simple_message(to=user.email,subject="Sinup Success.",body="Welcom to our app.")
+
+        send_simple_message(
+            to=user.email, subject="Sinup Success.", body="Welcom to our app."
+        )
 
         # return {"message": "User created successfully."}, 201
         return user
@@ -52,7 +71,8 @@ class UserLogin(MethodView):
     @blp.arguments(UserSchema)
     def post(self, user_data):
         user = UserModel.query.filter(
-            UserModel.username == user_data["username"]).first()
+            UserModel.username == user_data["username"]
+        ).first()
         if user and pbkdf2_sha256.verify(user_data["password"], user.password):
             access_token = create_access_token(identity=user.id, fresh=True)
             refresh_token = create_refresh_token(identity=user.id)

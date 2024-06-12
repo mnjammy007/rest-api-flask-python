@@ -30,8 +30,7 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = (
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     )
-    database_url = f'{os.getenv('DB_TYPE_PREFIX')}://{os.getenv('DB_USERNAME')}:{quote_plus(os.getenv('DB_PASSWORD'))}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}'
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or database_url or 'sqlite:///data.db'
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or f'{os.getenv('DB_TYPE_PREFIX')}://{os.getenv('DB_USERNAME')}:{quote_plus(os.getenv('DB_PASSWORD'))}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}' or 'sqlite:///data.db'
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
     migrate = Migrate(app, db)

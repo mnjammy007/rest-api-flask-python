@@ -1,5 +1,6 @@
 import os
 import requests
+from flask import current_app
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,23 +19,9 @@ from blocklist import BLOCKLIST
 from models import UserModel
 from schemas import UserSchema
 from schemas import UserRegisterSchema
+from task import send_user_registration_email
 
 blp = Blueprint("Users", "users", description="Operations on Users")
-
-
-def send_simple_message(to, subject, body):
-    domain = os.getenv("MAILGUN_DOMAIN_NAME")
-    api_key = os.getenv("MAILGUN_API_KEY")
-    return requests.post(
-        f"https://api.mailgun.net/v3/{domain}/messages",
-        auth=("api", f"{api_key}"),
-        data={
-            "from": f"Mohd Nasir Jamal <mailgun@{domain}>",
-            "to": [to],
-            "subject": subject,
-            "text": body,
-        },
-    )
 
 
 @blp.route("/register")
@@ -58,8 +45,8 @@ class UserRegister(MethodView):
         db.session.add(user)
         db.session.commit()
 
-        send_simple_message(
-            to=user.email, subject="Sinup Success.", body="Welcom to our app."
+        current_app.queue.enqueue(
+            send_user_registration_email, user.email, user.username
         )
 
         # return {"message": "User created successfully."}, 201
